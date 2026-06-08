@@ -226,32 +226,33 @@
     }
     .modal-overlay.open { display: flex; }
 
-    ..modal-box {
-        position: relative;
-        background: #f7f7f5;
-        padding: 14px;
-        max-width: 90vw;
-        max-height: 90vh;
-        width: auto;
-      }
-      
-      .modal-img-wrap {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: transparent;
-      }
-      
-      .modal-img-wrap img {
-        max-width: 100%;
-        max-height: 75vh;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-        display: block;
-        filter: none; /* optional: remove grayscale */
-      }
+    .modal-box {
+      position: relative;
+      background: #f7f7f5;
+      padding: 14px 14px 44px;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      animation: modalIn 0.35s ease;
+    }
+
+    .modal-img-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: transparent;
+    }
+
+    .modal-img-wrap img {
+      max-width: 100%;
+      max-height: 75vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+    }
+
     @keyframes modalIn {
       from { transform: scale(0.9) rotate(-2deg); opacity: 0; }
       to   { transform: scale(1) rotate(0deg); opacity: 1; }
@@ -419,44 +420,51 @@
       margin: 48px 0 0;
     }
 
-    /* Audio unmute toast */
-    .unmute-toast {
+    /* Music play button */
+    #musicBtn {
       position: fixed;
       bottom: 28px;
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       background: var(--dark);
       color: #f0eeeb;
       font-family: 'IM Fell English', serif;
       font-style: italic;
-      font-size: 14px;
-      letter-spacing: 0.12em;
-      padding: 12px 28px;
+      font-size: 15px;
+      letter-spacing: 0.14em;
+      padding: 14px 30px;
+      border: none;
       border-radius: 40px;
       cursor: pointer;
       z-index: 2000;
-      opacity: 0;
-      transition: opacity 0.4s ease, transform 0.4s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
       white-space: nowrap;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-    .unmute-toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    .unmute-toast.hide {
       opacity: 0;
-      transform: translateX(-50%) translateY(20px);
       pointer-events: none;
+      transition: opacity 0.4s ease, background 0.2s ease;
+    }
+    #musicBtn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #musicBtn:hover { background: #333; }
+    #musicBtn svg {
+      width: 16px;
+      height: 16px;
+      fill: #f0eeeb;
+      flex-shrink: 0;
     }
   </style>
 </head>
 <body>
 
 <!-- Audio -->
-<audio id="bgAudio" loop autoplay>
-    <source src="/fave.mp3" type="audio/mpeg">
-  </audio>
+<audio id="bgAudio" loop>
+  <source src="/fave.mp3" type="audio/mpeg">
+</audio>
 
 <div class="watermark-layer" id="watermarkLayer"></div>
 
@@ -506,13 +514,16 @@
   </div>
 </div>
 
-<!-- Unmute toast -->
-<div class="unmute-toast" id="unmuteToast">♪ tap to unmute</div>
+<!-- Music play button (shown when autoplay is blocked) -->
+<button id="musicBtn" aria-label="Play background music">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 5v14l11-7z"/>
+  </svg>
+  ♪ play music
+</button>
 
 <script>
   // ── Stories data ──
-  // Replace each img value with the path to your actual photo.
-  // e.g. './photos/photo1.jpg' — keep them in order!
   const stories = [
     { names: 'you + me', type: 'love', img: './assets/IMG_0672.JPG' },
     { names: 'you + me', type: 'love', img: './assets/IMG_0673.JPG' },
@@ -694,9 +705,7 @@
     { t: 'Worth choosing without pretending' },
   ];
 
-  // Split roughly in half at a natural blank line
   const half = Math.ceil(lyricsLines.length / 2);
-  // Find nearest spacer at or after half to make a clean split
   let splitAt = half;
   for (let i = half; i < lyricsLines.length; i++) {
     if (!lyricsLines[i].t) { splitAt = i; break; }
@@ -721,12 +730,35 @@
   renderLines(col1Lines, document.getElementById('lyricsCol1'));
   renderLines(col2Lines, document.getElementById('lyricsCol2'));
 
-  // ── Audio autoplay (muted) + unmute on interaction ──
+  // ── Audio: autoplay with fallback button ──
   const audio = document.getElementById('bgAudio');
+  const musicBtn = document.getElementById('musicBtn');
 
+  function showMusicBtn() {
+    musicBtn.classList.add('visible');
+  }
+
+  function hideMusicBtn() {
+    musicBtn.classList.remove('visible');
+  }
+
+  // Try autoplay on load
   window.addEventListener('load', () => {
-    audio.play().catch(err => {
-      console.log('Autoplay blocked:', err);
+    audio.play()
+      .then(() => {
+        // Autoplay succeeded — keep button hidden
+        hideMusicBtn();
+      })
+      .catch(() => {
+        // Autoplay blocked (common on Safari/iOS) — show the button
+        showMusicBtn();
+      });
+  });
+
+  // Button click: play audio and hide button
+  musicBtn.addEventListener('click', () => {
+    audio.play().then(() => {
+      hideMusicBtn();
     });
   });
 </script>
