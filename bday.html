@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YOU, My Favorite Story</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Playfair+Display:wght@400;700&family=IM+Fell+English:ital@1&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0eeeb;
+      --surface: #fafafa;
+      --dark: #111111;
+      --mid: #555555;
+      --light: #aaaaaa;
+      --border: #cccccc;
+      --ink: #222222;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: 'Cormorant Garamond', serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .watermark-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .watermark-layer span {
+      position: absolute;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      color: rgba(100,100,100,0.06);
+      font-size: clamp(18px,3vw,36px);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+    }
+
+    header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 24px 0 0;
+      gap: 20px;
+    }
+
+    .back-btn {
+      width: 60px;
+      height: 60px;
+      background: var(--dark);
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .back-btn:hover { background: var(--mid); }
+    .back-btn svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .site-title {
+      flex: 1;
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(36px, 7vw, 72px);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--dark);
+      line-height: 1;
+      padding-right: 80px;
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border), transparent);
+      margin: 18px 0 0;
+    }
+
+    .chapter-row {
+      position: relative;
+      height: 80px;
+      margin-top: 8px;
+      overflow: visible;
+    }
+    .chapter-row span {
+      position: absolute;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      color: var(--light);
+      font-size: clamp(18px, 2.2vw, 26px);
+      letter-spacing: 0.04em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 36px 20px;
+      margin-top: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: repeat(3, 1fr); gap: 28px 14px; }
+      .site-title { padding-right: 60px; font-size: 40px; }
+    }
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 22px 10px; }
+      .page { padding: 0 14px 60px; }
+      .site-title { font-size: 32px; padding-right: 50px; }
+      .back-btn { width: 48px; height: 48px; border-radius: 10px; }
+    }
+
+    /* Polaroid */
+    .card {
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.55s ease, transform 0.55s ease, box-shadow 0.3s ease;
+      background: #f7f7f5;
+      padding: 10px 10px 44px;
+      box-shadow: 2px 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.10);
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 44px;
+      height: 20px;
+      background: rgba(180,180,170,0.5);
+      border-radius: 2px;
+      z-index: 2;
+      box-shadow: inset 0 0 0 1px rgba(150,150,140,0.3);
+    }
+    .card.visible { opacity: 1; }
+    .card:hover {
+      box-shadow: 4px 10px 28px rgba(0,0,0,0.26), 0 2px 6px rgba(0,0,0,0.12);
+      z-index: 10;
+    }
+
+    .card-img-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #b0b0b0;
+    }
+    .card-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: grayscale(1) contrast(1.05) brightness(0.96);
+      transition: transform 0.6s ease, filter 0.4s ease;
+    }
+    .card:hover .card-img-wrap img {
+      transform: scale(1.04);
+      filter: grayscale(1) contrast(1.08) brightness(1.0);
+    }
+    .card-img-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.10'/%3E%3C/svg%3E");
+      pointer-events: none;
+      mix-blend-mode: multiply;
+    }
+
+    .card-meta { padding: 10px 4px 0; text-align: center; }
+    .card-names {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 10px;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--mid);
+      margin-bottom: 2px;
+    }
+    .card-type {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(15px, 1.6vw, 19px);
+      color: var(--dark);
+      letter-spacing: 0.01em;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    ..modal-box {
+        position: relative;
+        background: #f7f7f5;
+        padding: 14px;
+        max-width: 90vw;
+        max-height: 90vh;
+        width: auto;
+      }
+      
+      .modal-img-wrap {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: transparent;
+      }
+      
+      .modal-img-wrap img {
+        max-width: 100%;
+        max-height: 75vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        filter: none; /* optional: remove grayscale */
+      }
+    @keyframes modalIn {
+      from { transform: scale(0.9) rotate(-2deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: -18px;
+      right: -18px;
+      width: 40px;
+      height: 40px;
+      background: var(--dark);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: background 0.2s;
+    }
+    .modal-close:hover { background: #444; }
+    .modal-close svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+    .modal-meta { padding: 12px 4px 0; text-align: center; }
+    .modal-names {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mid);
+      margin-bottom: 4px;
+    }
+    .modal-type {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: 22px;
+      color: var(--dark);
+    }
+
+    @media (max-width: 600px) {
+      .modal-box { max-width: 95vw; padding: 10px 10px 44px; }
+      .modal-close { top: -14px; right: -10px; width: 34px; height: 34px; }
+    }
+
+    /* ── Static two-column lyrics ── */
+    .lyrics-section {
+      margin-top: 80px;
+      position: relative;
+    }
+    .lyrics-label {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(12px, 1.6vw, 15px);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--light);
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .lyrics-divider {
+      width: 60px;
+      height: 1px;
+      background: var(--border);
+      margin: 0 auto 40px;
+    }
+
+    .lyrics-columns {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      gap: 0 40px;
+      align-items: start;
+    }
+
+    .lyrics-col-divider {
+      background: linear-gradient(to bottom, transparent, var(--border) 15%, var(--border) 85%, transparent);
+      align-self: stretch;
+    }
+
+    .lyrics-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lyric-line {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(15px, 1.8vw, 20px);
+      line-height: 1.9;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    .lyric-line.italic { font-style: italic; }
+    .lyric-line.section {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(10px, 1.1vw, 12px);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--light);
+      margin-top: 0.5em;
+    }
+    .lyric-line.spacer {
+      height: 1.1em;
+      display: block;
+    }
+
+    @media (max-width: 680px) {
+      .lyrics-columns {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      .lyrics-col-divider { display: none; }
+      .lyrics-col:first-child { margin-bottom: 32px; }
+    }
+
+    /* Surprise */
+    .surprise-section {
+      margin-top: 72px;
+      text-align: center;
+      padding-bottom: 20px;
+    }
+    .surprise-label {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(13px, 1.6vw, 16px);
+      letter-spacing: 0.16em;
+      color: var(--light);
+      margin-bottom: 24px;
+      display: block;
+    }
+    .surprise-btn {
+      display: inline-block;
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(14px, 1.8vw, 17px);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--dark);
+      border: none;
+      padding: 18px 52px;
+      cursor: pointer;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s, letter-spacing 0.3s;
+    }
+    .surprise-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+      z-index: 0;
+    }
+    .surprise-btn:hover::before { transform: scaleX(1); }
+    .surprise-btn:hover { color: var(--dark); letter-spacing: 0.30em; }
+    .surprise-btn span { position: relative; z-index: 1; }
+
+    .bottom-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border), transparent);
+      margin: 48px 0 0;
+    }
+
+    /* Audio unmute toast */
+    .unmute-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--dark);
+      color: #f0eeeb;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      padding: 12px 28px;
+      border-radius: 40px;
+      cursor: pointer;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .unmute-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .unmute-toast.hide {
+      opacity: 0;
+      transform: translateX(-50%) translateY(20px);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Audio -->
+<audio id="bgAudio" loop preload="auto">
+  <source src="/fave-song.mp3" type="audio/mpeg">
+</audio>
+
+<div class="watermark-layer" id="watermarkLayer"></div>
+
+<div class="page">
+  <header>
+    <button class="back-btn" aria-label="Go back">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h1 class="site-title">YOU, MY FAVORITE SONG</h1>
+  </header>
+
+  <div class="divider"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <!-- Lyrics -->
+  <div class="lyrics-section">
+    <p class="lyrics-label">♪ now playing</p>
+    <div class="lyrics-divider"></div>
+    <div class="lyrics-columns">
+      <div class="lyrics-col" id="lyricsCol1"></div>
+      <div class="lyrics-col-divider"></div>
+      <div class="lyrics-col" id="lyricsCol2"></div>
+    </div>
+  </div>
+
+  <div class="bottom-divider"></div>
+
+  <!-- Surprise -->
+  <div class="surprise-section">
+    <span class="surprise-label">something is waiting for you</span>
+    <a href="surprise.html" class="surprise-btn"><span>A Surprise ✦</span></a>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-label="Photo detail">
+  <div class="modal-box" id="modalBox">
+    <button class="modal-close" id="modalClose" aria-label="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="modal-img-wrap" id="modalImg"></div>
+    <div class="modal-meta">
+      <div class="modal-names" id="modalNames"></div>
+      <div class="modal-type" id="modalType"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Unmute toast -->
+<div class="unmute-toast" id="unmuteToast">♪ tap to unmute</div>
+
+<script>
+  // ── Stories data ──
+  // Replace each img value with the path to your actual photo.
+  // e.g. './photos/photo1.jpg' — keep them in order!
+  const stories = [
+    { names: 'you + me', type: 'love', img: './assets/IMG_0672.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0673.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0674.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0675.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0676.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0677.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0678.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0679.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0680.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0681.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0682.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0683.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0684.PNG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0685.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0686.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0687.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0688.PNG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0690.JPG' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0691.jpg' },
+    { names: 'you + me', type: 'love', img: './assets/IMG_0692.PNG' },
+  ];
+
+  const tilts = [2.2,-3.1,1.5,-2.7,3.4,-1.8,2.9,-3.5,1.2,-2.3,3.1,-1.6,2.5,-3.8,1.9,-2.1,3.6,-1.3,2.8,-3.3,1.7];
+  const grid = document.getElementById('grid');
+
+  stories.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const tilt = tilts[i % tilts.length];
+    card.style.transform = `rotate(${tilt}deg) translateY(18px)`;
+    card.dataset.tilt = tilt;
+
+    card.innerHTML = `
+      <div class="card-img-wrap">
+        <img src="${s.img}" alt="${s.type}" loading="lazy">
+      </div>
+      <div class="card-meta">
+        <div class="card-names">${s.names}</div>
+        <div class="card-type">${s.type}</div>
+      </div>
+    `;
+
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = `rotate(0deg) translateY(-6px) scale(1.04)`;
+      card.style.zIndex = 10;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = `rotate(${tilt}deg) translateY(0)`;
+      card.style.zIndex = '';
+    });
+    card.addEventListener('click', () => openModal(i));
+    grid.appendChild(card);
+  });
+
+  // Staggered reveal
+  const cards = document.querySelectorAll('.card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const card = entry.target;
+        const idx = [...cards].indexOf(card);
+        const tilt = card.dataset.tilt;
+        setTimeout(() => {
+          card.classList.add('visible');
+          card.style.transform = `rotate(${tilt}deg) translateY(0)`;
+        }, idx * 65);
+        observer.unobserve(card);
+      }
+    });
+  }, { threshold: 0.08 });
+  cards.forEach(c => observer.observe(c));
+
+  // ── Modal ──
+  const overlay = document.getElementById('modalOverlay');
+  const modalImg = document.getElementById('modalImg');
+  const modalNames = document.getElementById('modalNames');
+  const modalType = document.getElementById('modalType');
+
+  function openModal(i) {
+    modalImg.innerHTML = `<img src="${stories[i].img}" alt="${stories[i].type}">`;
+    modalNames.textContent = stories[i].names;
+    modalType.textContent = stories[i].type;
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ── Watermarks ──
+  const watermarkWords = ['love','forever','together','story','chapters','madly','in love','heart','souls','beautiful','moments','always'];
+  const layer = document.getElementById('watermarkLayer');
+  for (let i = 0; i < 22; i++) {
+    const s = document.createElement('span');
+    s.textContent = watermarkWords[i % watermarkWords.length];
+    s.style.top = Math.random() * 95 + '%';
+    s.style.left = Math.random() * 90 + '%';
+    s.style.fontSize = (16 + Math.random() * 24) + 'px';
+    s.style.transform = `rotate(${(Math.random()-0.5)*20}deg)`;
+    layer.appendChild(s);
+  }
+
+  document.querySelector('.back-btn').addEventListener('click', () => { if (history.length > 1) history.back(); });
+
+  // ── Static two-column lyrics ──
+  const lyricsLines = [
+    { t: 'The older you get, the more intentional you become' },
+    { t: 'You stop running circles, stop chasing just anyone' },
+    { t: 'And sometimes I wonder if I need to play the game' },
+    { t: 'Just to keep somebody I truly want to stay' },
+    { t: 'Replying late on purpose', i: true },
+    { t: 'Acting less than what I am', i: true },
+    { t: 'Making them chase a little harder', i: true },
+    { t: "Pretending I don't give a damn", i: true },
+    { t: '' },
+    { t: "Maybe 'cause people say" },
+    { t: "If you love too openly, they'll leave someday" },
+    { t: 'If you care too much too soon' },
+    { t: "You'll scare their heart away" },
+    { t: "Don't get me wrong, I can flirt" },
+    { t: "I can laugh, disappear, keep it casual when it works" },
+    { t: 'I know how to detach' },
+    { t: "When it's just moments that won't last" },
+    { t: '' },
+    { t: 'But when I meet someone' },
+    { t: "I can see myself growing old with" },
+    { t: 'Man… everything changes', i: true },
+    { t: 'Even knowing honesty might ruin it' },
+    { t: 'Still, I choose honesty every time' },
+    { t: "I won't manipulate forever just so love can start tonight" },
+    { t: "' Cause I still believe the beauty of something real" },
+    { t: 'Is knowing both hearts simply wanted to feel' },
+    { t: 'No games, no push and pull' },
+    { t: 'No calculated distance between me and you' },
+    { t: 'Just two souls choosing the same road' },
+    { t: 'Just two who decided to grow old' },
+    { t: '' },
+    { t: "I don't wanna build forever" },
+    { t: 'On strategies and fear' },
+    { t: "Don't wanna act cold" },
+    { t: 'Just to keep somebody near' },
+    { t: "If I like you, I'll show it" },
+    { t: "If I care, you'll know" },
+    { t: 'And if that makes you leave' },
+    { t: 'Then maybe you were never meant to stay close' },
+    { t: "Because love shouldn't feel like winning some war" },
+    { t: 'When all I ever wanted was something honest at the core' },
+    { t: '' },
+    { t: "And maybe that's rare now", i: true },
+    { t: "Maybe that's why it hurts", i: true },
+    { t: 'To love without a mask on', i: true },
+    { t: 'In a world rehearsed', i: true },
+    { t: "But I'd rather lose being real" },
+    { t: 'Than win by pretending' },
+    { t: "I'd rather start with truth" },
+    { t: 'Than fake a perfect ending' },
+    { t: "I don't want to be your whole world" },
+    { t: "I just want to be the one holding your hand" },
+    { t: "While you're building it" },
+    { t: '' },
+    { t: 'No chasing, no confusion' },
+    { t: 'Just reaching for my hand' },
+    { t: "We won't need little games" },
+    { t: 'To prove what we already know' },
+    { t: 'Two hearts that simply chose each other' },
+    { t: 'And never let go' },
+    { t: 'No games, no push and pull' },
+    { t: 'No calculated distance breaking through' },
+    { t: 'Just two souls who finally found' },
+    { t: 'A love worth growing old around' },
+    { t: '' },
+    { t: 'In a world that keeps pretending' },
+    { t: "You're still the kind of person" },
+    { t: 'Worth choosing without pretending' },
+  ];
+
+  // Split roughly in half at a natural blank line
+  const half = Math.ceil(lyricsLines.length / 2);
+  // Find nearest spacer at or after half to make a clean split
+  let splitAt = half;
+  for (let i = half; i < lyricsLines.length; i++) {
+    if (!lyricsLines[i].t) { splitAt = i; break; }
+  }
+
+  const col1Lines = lyricsLines.slice(0, splitAt);
+  const col2Lines = lyricsLines.slice(splitAt);
+
+  function renderLines(lines, colEl) {
+    lines.forEach(l => {
+      const div = document.createElement('div');
+      if (!l.t) {
+        div.className = 'lyric-line spacer';
+      } else {
+        div.className = 'lyric-line' + (l.i ? ' italic' : '');
+        div.textContent = l.t;
+      }
+      colEl.appendChild(div);
+    });
+  }
+
+  renderLines(col1Lines, document.getElementById('lyricsCol1'));
+  renderLines(col2Lines, document.getElementById('lyricsCol2'));
+
+  // ── Audio autoplay (muted) + unmute on interaction ──
+  const audio = document.getElementById('bgAudio');
+  const toast = document.getElementById('unmuteToast');
+  let unmuted = false;
+
+  function tryPlay() {
+    audio.muted = true;
+    audio.play().then(() => {
+      setTimeout(() => toast.classList.add('show'), 1200);
+    }).catch(() => {
+      toast.textContent = '♪ tap to play';
+      setTimeout(() => toast.classList.add('show'), 600);
+    });
+  }
+
+  function unmuteAudio() {
+    if (!unmuted) {
+      unmuted = true;
+      audio.muted = false;
+      if (audio.paused) audio.play();
+  
+      toast.textContent = '♪ music playing';
+    }
+  }
+
+  window.addEventListener('load', tryPlay);
+  toast.addEventListener('click', unmuteAudio);
+  document.addEventListener('click', unmuteAudio, { once: true });
+  document.addEventListener('touchstart', unmuteAudio, { once: true });
+</script>
+</body>
+</html>

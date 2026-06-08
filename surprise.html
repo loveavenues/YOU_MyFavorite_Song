@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surprise Box</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    width:100%;
+    background:#ffffff;
+    overflow:hidden;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.container{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    width:100%;
+    padding:20px;
+}
+
+/* IMAGE */
+
+img{
+    width:100%;
+    max-width:420px;
+    height:auto;
+    transition:opacity .5s ease;
+    cursor:pointer;
+}
+
+/* BUTTON */
+
+button{
+    padding:12px 22px;
+    font-size:16px;
+    cursor:pointer;
+    border:none;
+    background:#967e70;
+    color:white;
+    border-radius:8px;
+}
+
+/* CENTER BUTTON */
+
+#toggleButton{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+}
+
+/* TEXT */
+
+#messageText{
+    position:absolute;
+    top:8%;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:18px;
+    font-weight:bold;
+    color:#333;
+    display:none;
+    text-align:center;
+}
+
+/* MODAL */
+
+.modal{
+    display:none;
+    position:fixed;
+    z-index:100;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.6);
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.modal-content{
+  background:rgb(210, 210, 210);
+  padding:28px;
+  border-radius:14px;
+  max-width:420px;
+  max-height:70vh;        /* Limit modal height */
+  width:100%;
+  text-align:center;
+  font-size:18px;
+  line-height:1.6;
+  position:relative;
+  animation:popup .4s ease;
+  overflow-y:auto;        /* Add vertical scroll if content exceeds height */
+}
+
+.close{
+    position:absolute;
+    right:15px;
+    top:10px;
+    font-size:24px;
+    cursor:pointer;
+}
+
+/* ANIMATION */
+
+@keyframes popup{
+    from{
+        transform:scale(.75);
+        opacity:0;
+    }
+    to{
+        transform:scale(1);
+        opacity:1;
+    }
+}
+
+/* MOBILE OPTIMIZATION */
+
+@media (max-width:600px){
+
+    img{
+        max-width:320px;
+    }
+
+    #messageText{
+        font-size:16px;
+    }
+
+    button{
+        font-size:15px;
+        padding:10px 18px;
+    }
+
+    .modal-content{
+      font-size:16px;
+      padding:22px;
+      max-height:60vh;   /* Slightly smaller on mobile */
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<p id="messageText">Click the hearts</p>
+
+<img id="box" src="./1.png" alt="Closed Box" onclick="openMessage()">
+
+<button id="toggleButton" onclick="toggleBox()">Open the box</button>
+
+<div id="confetti-container"></div>
+
+</div>
+
+<!-- MODAL -->
+
+<div id="messageModal" class="modal">
+<div class="modal-content">
+
+<span class="close">&times;</span>
+
+<p>
+    Hi Love, 🤗 <br>
+
+    If you're hearing this, it means you've opened the little surprise I made for you.
+    
+    First of all... I wanna say, Happy Happy Happy Birthday.✨️
+    
+    I want you to know that meeting you already feels like something truly meaningful in my life. So just hear me out, okii?
+    
+    I chose 27 roses for you—one for every year we didn't get to know each other yet. Maybe we can make up for those lost years now, one memory at a time. Though, if we're being honest, we've probably already made more memories than we can count. And maybe that's because we simply lived in those moments instead of counting them—and that's what matters.
+    
+    But more than anything, I wish for you to live the life you truly want. I hope you achieve every dream you set your heart on, become the best version of yourself, and never lose the light that makes you who you are.
+    
+    And through all of that, I want you to know that I'll be here—supporting you, caring for you, and doing my best for you in every way I can. I may not always be perfect, and I won't try to be, because I'm not. But I will always be genuine and intentional with what I feel for you.
+    
+    For now, let's keep making memories together—slowly, sincerely, and one day at a time—and see where life takes us.
+    
+    I hope you never lose yourself while loving me. I want you to put yourself first, chase your dreams, and keep becoming the person you're meant to be. I don't want to be your whole world—I just want to be the one holding your hand while you're building it. Take care of yourself love... and don't forget that you means a lot to me, okii!.
+    
+    I love you, my Dragon. 🔥🌻
+    
+    Happy Birthday. 🩶
+</p>
+
+</div>
+</div>
+
+<!-- AUDIO -->
+
+<audio id="voiceMessage" src="./Voice Record.mp3"></audio>
+
+<audio id="bgMusic" src="./I Will Be Here - Steven Curtis Chapman (Alessandra de Rossi & Paolo Contis version)  Karaoke.mp3" loop></audio>
+
+<script>
+
+    let isOpen = false;
+    
+    const bgMusic = document.getElementById("bgMusic");
+    const voiceAudio = document.getElementById("voiceMessage");
+    
+    function toggleBox(){
+    
+        const box = document.getElementById("box");
+        const button = document.getElementById("toggleButton");
+        const messageText = document.getElementById("messageText");
+    
+        if(isOpen){
+    
+            box.src="./1.png";
+            button.style.display="block";
+            messageText.style.display="none";
+    
+            isOpen = false;
+    
+        }else{
+    
+            box.src="./Untitled design (1).png";
+            button.style.display="none";
+            messageText.style.display="block";
+    
+            // Start background music when opening box
+            bgMusic.volume = 0.15;
+    
+            if(bgMusic.paused){
+                bgMusic.play().catch(err => console.log(err));
+            }
+    
+            isOpen = true;
+    
+        }
+    }
+    
+    function openMessage(){
+
+        if(!isOpen) return;
+    
+        const modal = document.getElementById("messageModal");
+    
+        modal.style.display = "flex";
+    
+        voiceAudio.pause();
+        voiceAudio.currentTime = 0;
+    
+        voiceAudio.play().catch(err => console.log(err));
+    }
+    
+    const modal = document.getElementById("messageModal");
+    const closeBtn = document.querySelector(".close");
+    
+    // Close button
+    closeBtn.onclick = function(){
+    
+        modal.style.display = "none";
+    
+        // Stop ONLY the voice recording
+        voiceAudio.pause();
+        voiceAudio.currentTime = 0;
+    }
+    
+    // Click outside modal
+    window.onclick = function(event){
+    
+        if(event.target === modal){
+    
+            modal.style.display = "none";
+    
+            // Stop ONLY the voice recording
+            voiceAudio.pause();
+            voiceAudio.currentTime = 0;
+        }
+    }
+    
+    </script>
+
+</body>
+</html>
