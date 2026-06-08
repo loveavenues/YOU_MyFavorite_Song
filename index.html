@@ -454,9 +454,9 @@
 <body>
 
 <!-- Audio -->
-<audio id="bgAudio" loop preload="auto">
-  <source src="/fave-song.mp3" type="audio/mpeg">
-</audio>
+<audio id="bgAudio" loop autoplay>
+    <source src="/fave.mp3" type="audio/mpeg">
+  </audio>
 
 <div class="watermark-layer" id="watermarkLayer"></div>
 
@@ -723,33 +723,12 @@
 
   // ── Audio autoplay (muted) + unmute on interaction ──
   const audio = document.getElementById('bgAudio');
-  const toast = document.getElementById('unmuteToast');
-  let unmuted = false;
 
-  function tryPlay() {
-    audio.muted = true;
-    audio.play().then(() => {
-      setTimeout(() => toast.classList.add('show'), 1200);
-    }).catch(() => {
-      toast.textContent = '♪ tap to play';
-      setTimeout(() => toast.classList.add('show'), 600);
+  window.addEventListener('load', () => {
+    audio.play().catch(err => {
+      console.log('Autoplay blocked:', err);
     });
-  }
-
-  function unmuteAudio() {
-    if (!unmuted) {
-      unmuted = true;
-      audio.muted = false;
-      if (audio.paused) audio.play();
-  
-      toast.textContent = '♪ music playing';
-    }
-  }
-
-  window.addEventListener('load', tryPlay);
-  toast.addEventListener('click', unmuteAudio);
-  document.addEventListener('click', unmuteAudio, { once: true });
-  document.addEventListener('touchstart', unmuteAudio, { once: true });
+  });
 </script>
 </body>
 </html>
