@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Locked</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@300;400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #333333;
+    --text: #f0f0f0;
+    --muted: #888888;
+    --accent: #ffffff;
+    --error: #ff6b6b;
+    --success: #a8e6a3;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Subtle grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Faint cross/sparkle decorations */
+  .deco {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    color: rgba(255,255,255,0.06);
+    font-size: 28px;
+    font-family: serif;
+    user-select: none;
+  }
+
+  /* ── LOCK SCREEN ── */
+  #lockScreen {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 360px;
+    padding: 0 20px;
+  }
+
+  .lock-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    filter: grayscale(1) brightness(1.4);
+  }
+
+  .lock-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .lock-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  /* PIN dots */
+  .pin-dots {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .pin-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted);
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .pin-dot.filled {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.1);
+  }
+  .pin-dot.error {
+    border-color: var(--error);
+    background: var(--error);
+    animation: shake 0.35s ease;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  /* Keypad */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .key {
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .key:hover { background: var(--surface2); border-color: #555; }
+  .key:active { transform: scale(0.93); background: #2e2e2e; }
+
+  .key-zero {
+    grid-column: 2;
+  }
+
+  .key-back {
+    background: transparent;
+    border-color: transparent;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .key-back:hover { background: var(--surface); border-color: var(--border); color: var(--text); }
+
+  .error-msg {
+    margin-top: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--error);
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-align: center;
+  }
+  .error-msg.show { opacity: 1; }
+
+  /* ── UNLOCKED SCREEN ── */
+  #unlockedScreen {
+    display: none;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    padding: 0 16px;
+    animation: fadeUp 0.6s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Window chrome */
+  .window {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05) inset;
+  }
+
+  .window-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .window-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .window-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .wc {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .window-body {
+    padding: 20px;
+  }
+
+  /* Timer block */
+  .timer-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .timer-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .timer-display {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .timer-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 64px;
+  }
+
+  .timer-num {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 7vw, 42px);
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .timer-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .timer-sep {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 7vw, 42px);
+    color: var(--border);
+    line-height: 1;
+    padding: 0 2px;
+    align-self: flex-start;
+    padding-top: 0;
+  }
+
+  /* Message */
+  .message-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: #cccccc;
+    margin-bottom: 20px;
+    text-align: justify;
+  }
+
+  /* Tags */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    background: transparent;
+  }
+  .tag:hover {
+    border-color: #777;
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  /* Footer */
+  .window-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+  }
+
+  .notes-count {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .footer-icons {
+    display: flex;
+    gap: 16px;
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .footer-icons span { cursor: pointer; transition: color 0.2s; }
+  .footer-icons span:hover { color: var(--text); }
+
+  .made-with {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: #3a3a3a;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 480px) {
+    .timer-unit { min-width: 52px; }
+    .window-body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Deco sparkles -->
+<span class="deco" style="top:8%;left:6%">✦</span>
+<span class="deco" style="top:15%;right:9%">✦</span>
+<span class="deco" style="bottom:12%;left:4%">✦</span>
+<span class="deco" style="bottom:18%;right:7%">✦</span>
+<span class="deco" style="top:45%;left:2%;font-size:16px">✦</span>
+<span class="deco" style="top:60%;right:3%;font-size:16px">✦</span>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-icon">🔒</div>
+  <p class="lock-hint">Hint: day one</p>
+  <h1 class="lock-title">Enter Password</h1>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="keypad">
+    <button class="key" onclick="pressKey('1')">1</button>
+    <button class="key" onclick="pressKey('2')">2</button>
+    <button class="key" onclick="pressKey('3')">3</button>
+    <button class="key" onclick="pressKey('4')">4</button>
+    <button class="key" onclick="pressKey('5')">5</button>
+    <button class="key" onclick="pressKey('6')">6</button>
+    <button class="key" onclick="pressKey('7')">7</button>
+    <button class="key" onclick="pressKey('8')">8</button>
+    <button class="key" onclick="pressKey('9')">9</button>
+    <button class="key key-back" onclick="pressBack()">⌫</button>
+    <button class="key key-zero" onclick="pressKey('0')">0</button>
+    <div></div>
+  </div>
+  <p class="error-msg" id="errorMsg">incorrect password</p>
+</div>
+
+<!-- UNLOCKED SCREEN -->
+<div id="unlockedScreen">
+  <div class="window">
+    <div class="window-bar">
+      <span class="window-title">site is successfully unlocked !</span>
+      <div class="window-controls">
+        <div class="wc"></div>
+        <div class="wc"></div>
+        <div class="wc"></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="timer-block">
+        <p class="timer-label">Time we spend together</p>
+        <div class="timer-display">
+          <div class="timer-unit">
+            <span class="timer-num" id="tDays">000</span>
+            <span class="timer-sub">Days</span>
+          </div>
+          <span class="timer-sep">:</span>
+          <div class="timer-unit">
+            <span class="timer-num" id="tHrs">00</span>
+            <span class="timer-sub">Hrs</span>
+          </div>
+          <span class="timer-sep">:</span>
+          <div class="timer-unit">
+            <span class="timer-num" id="tMins">00</span>
+            <span class="timer-sub">Mins</span>
+          </div>
+          <span class="timer-sep">:</span>
+          <div class="timer-unit">
+            <span class="timer-num" id="tSecs">00</span>
+            <span class="timer-sub">Secs</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="message-text">
+        Hi love! Before you click each icon, take a deep breath and get ready—because this little surprise was made just for you. I put my heart into it, and I hope it brings a smile to your face. Whether it's big or small, it comes with all my love. Now go ahead, open it and enjoy every bit! ❤️
+      </p>
+
+      <div class="tags">
+        <a href="memories.html" class="tag">#Memories ✍</a>
+        <a href="#" class="tag">#FirstMeet ♡</a>
+        <a href="surprise.html" class="tag">Gift ⊞</a>
+      </div>
+    </div>
+    <div class="window-footer">
+      <span class="notes-count">143 Notes</span>
+      <div class="footer-icons">
+        <span title="Comment">💬</span>
+        <span title="Favorite">☆</span>
+        <span title="Share">↺</span>
+      </div>
+    </div>
+  </div>
+  <p class="made-with">( made with love )</p>
+</div>
+
+<script>
+  const CORRECT = '1203';
+  const START_DATE = new Date('2026-03-05T00:00:00');
+
+  let pin = '';
+
+  function pressKey(k) {
+    if (pin.length >= 4) return;
+    pin += k;
+    updateDots();
+    if (pin.length === 4) {
+      setTimeout(checkPin, 120);
+    }
+  }
+
+  function pressBack() {
+    pin = pin.slice(0, -1);
+    updateDots();
+    hideError();
+  }
+
+  function updateDots() {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('d' + i);
+      dot.classList.toggle('filled', i < pin.length);
+      dot.classList.remove('error');
+    }
+  }
+
+  function checkPin() {
+    if (pin === CORRECT) {
+      unlock();
+    } else {
+      showError();
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('d' + i);
+        dot.classList.add('error');
+        dot.classList.remove('filled');
+      }
+      setTimeout(() => {
+        pin = '';
+        updateDots();
+      }, 700);
+    }
+  }
+
+  function showError() {
+    document.getElementById('errorMsg').classList.add('show');
+  }
+  function hideError() {
+    document.getElementById('errorMsg').classList.remove('show');
+  }
+
+  function unlock() {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('unlockedScreen').style.display = 'block';
+    startTimer();
+  }
+
+  // Timer
+  function startTimer() {
+    function tick() {
+      const now = new Date();
+      const diff = now - START_DATE;
+      if (diff < 0) {
+        document.getElementById('tDays').textContent = '000';
+        return;
+      }
+      const totalSec = Math.floor(diff / 1000);
+      const secs = totalSec % 60;
+      const mins = Math.floor(totalSec / 60) % 60;
+      const hrs  = Math.floor(totalSec / 3600) % 24;
+      const days = Math.floor(totalSec / 86400);
+
+      document.getElementById('tDays').textContent = String(days).padStart(3, '0');
+      document.getElementById('tHrs').textContent  = String(hrs).padStart(2, '0');
+      document.getElementById('tMins').textContent = String(mins).padStart(2, '0');
+      document.getElementById('tSecs').textContent = String(secs).padStart(2, '0');
+    }
+    tick();
+    setInterval(tick, 1000);
+  }
+</script>
+</body>
+</html>
